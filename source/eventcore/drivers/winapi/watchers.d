@@ -128,7 +128,7 @@ final class WinAPIEventDriverWatchers : EventDriverWatchers {
 		import std.algorithm.iteration : map;
 		import std.conv : to;
 		import std.file : isDir;
-		import std.path : dirName, baseName, buildPath;
+		import std.string : lastIndexOfAny;
 
 		auto handle = overlapped.hEvent; // *file* handle
 		auto gslot = () @trusted { return &WinAPIEventDriver.threadInstance.core.m_handles[handle]; } ();
@@ -189,10 +189,14 @@ final class WinAPIEventDriverWatchers : EventDriverWatchers {
 				if (fni.NextEntryOffset > 0) continue;
 				else break;
 			}
-			auto fullpath = buildPath(slot.directory, path);
-			ch.directory = dirName(path);
+			sizediff_t sep = -1;
+			try sep = path.lastIndexOfAny("/\\");
+			catch (Exception e) {}
+			if (sep >= 0) {
+				ch.directory = path[0 .. sep];
+				ch.name = path[sep+1 .. $];
+			} else ch.name = path;
 			if (ch.directory == ".") ch.directory = "";
-			ch.name = baseName(path);
 			slot.callback(id, ch);
 			if (fni.NextEntryOffset == 0 || !slot.callback) break;
 		}
